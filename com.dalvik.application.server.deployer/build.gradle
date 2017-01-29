@@ -1,0 +1,77 @@
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+version = '1.0'
+archivesBaseName = "serverDeployer"
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+jar {
+    println 'making server jar'
+    archiveName = 'server.jar'
+    outputs.upToDateWhen { false }
+    manifest {
+        attributes 'Implementation-Title': 'com.dalvik.application.server.deployer',
+        	'Implementation-Version': version,
+        	"Main-Class": "com.dalvik.application.server.deployer.impl.MainDriver"
+    }
+    
+    baseName = project.name + '-all'
+    from {
+              configurations.compile.collect {
+                  it.isDirectory() ? it : zipTree(it)
+              }
+              configurations.runtime.collect {
+                  it.isDirectory() ? it : zipTree(it)
+              }
+          }
+    doLast{
+       println 'copying config file'
+       tasks.copyTask.execute()
+       println 'copying service war files'
+       tasks.copyWarTask.execute()
+       println 'making zip'
+       tasks.zip.execute()
+       println 'server jar build success'
+    } 
+}
+
+task zip(type: Zip) {
+    from 'build/libs/'
+    destinationDir file('build/')
+}
+
+task copyTask(type: Copy) {
+    from 'config.properties'
+    into 'build/libs/'
+}
+
+allprojects {
+    task dependentProject {
+        doLast { task ->
+            println "I'm $task.project.name"
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'eclipse'
+    group = 'com.dalvik.application.server.deployer'
+    version = '1.0'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        testCompile "junit:junit:4.12"
+    }
+}
+
+dependencies {
+    compile project(':com.dalvik.tomcat.deployer')
+    compile project(':com.dalvik.utils')
+    compile fileTree(dir: 'lib', include: '*.jar')
+}

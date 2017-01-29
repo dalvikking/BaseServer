@@ -1,0 +1,87 @@
+apply plugin: 'war' 
+apply plugin: 'eclipse-wtp'
+
+version = '1.0'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+webAppDirName = 'WebContent'
+
+configurations {
+    war {}
+}
+
+artifacts {
+    war tasks.war
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/']
+        }
+    }
+}
+
+allprojects {
+    task dependentProjects {
+        doLast { task ->
+            println "I'm $task.project.name"
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'eclipse'
+    group = 'com.dalvik.service.authentication'
+    version = '1.0'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        testCompile "junit:junit:4.12"
+        compile 'org.slf4j:slf4j-api:1.7.21'
+    }
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile project(':com.dalvik.tomcat.deployer')
+    compile project(':com.dalvik.utils')
+    compile group: 'io.jsonwebtoken', name: 'jjwt', version: '0.2'
+    compile fileTree(dir: "${webAppDirName}/WEB-INF/lib", include: '*.jar')
+}
+
+
+war { 
+  println 'making auth service war'
+  archiveName = 'authentication.war'
+  outputs.upToDateWhen { false }
+  /*
+  doLast {
+     println 'unpacking service.war'
+     tasks.unzip.execute()
+     def zipFile = file('build/libs/authentication.war')
+     delete(zipFile)
+     tasks.copyWarTask.execute()
+  }
+  */
+}
+
+task unzip(type: Copy) {
+    def zipFile = file('build/libs/authentication.war')
+    def outputDir = file("build/libs/war/")
+ 
+    from zipTree(zipFile)
+    into outputDir
+}
+
+task copyWarTask(type: Copy) {
+    from 'build/libs/war/'
+    into 'war/'
+}
